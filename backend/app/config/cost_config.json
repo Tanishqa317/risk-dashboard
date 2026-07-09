@@ -1,0 +1,8 @@
+{
+  "gas_leak": 500000,
+  "fire": 2000000,
+  "chemical_spill": 800000,
+  "equipment_failure": 150000,
+  "structural": 1000000,
+  "default": 300000
+}
