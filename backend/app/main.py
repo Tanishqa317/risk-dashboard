@@ -8,6 +8,7 @@ from app.routes.guardrail import router as guardrail_router
 from app.routes.permit_detector import router as permit_detector_router
 from app.routes.alarm_fatigue import router as alarm_fatigue_router
 from app.routes.incident_intelligence import router as incident_intelligence_router
+from app.routes.compliance import router as compliance_router
 from app.routes.replay import router as replay_router
 from app.routes.evidence_chain import router as evidence_chain_router
 from app.routes.evac_routing import router as evac_routing_router
@@ -32,6 +33,7 @@ app.include_router(guardrail_router, prefix=api_prefix)
 app.include_router(permit_detector_router, prefix=api_prefix)
 app.include_router(alarm_fatigue_router, prefix=api_prefix)
 app.include_router(incident_intelligence_router, prefix=api_prefix)
+app.include_router(compliance_router, prefix=api_prefix)
 app.include_router(replay_router, prefix=api_prefix)
 app.include_router(evidence_chain_router, prefix=api_prefix)
 app.include_router(evac_routing_router, prefix=api_prefix)
