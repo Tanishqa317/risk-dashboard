@@ -7,9 +7,11 @@ from app.routes.cost_translator import router as cost_translator_router
 from app.routes.guardrail import router as guardrail_router
 from app.routes.permit_detector import router as permit_detector_router
 from app.routes.alarm_fatigue import router as alarm_fatigue_router
+from app.routes.incident_intelligence import router as incident_intelligence_router
 from app.routes.replay import router as replay_router
 from app.routes.evidence_chain import router as evidence_chain_router
 from app.routes.evac_routing import router as evac_routing_router
+from app.services.rag_service import build_index
 
 app = FastAPI(title="risk-dashboard API")
 
@@ -29,9 +31,18 @@ app.include_router(cost_translator_router, prefix=api_prefix)
 app.include_router(guardrail_router, prefix=api_prefix)
 app.include_router(permit_detector_router, prefix=api_prefix)
 app.include_router(alarm_fatigue_router, prefix=api_prefix)
+app.include_router(incident_intelligence_router, prefix=api_prefix)
 app.include_router(replay_router, prefix=api_prefix)
 app.include_router(evidence_chain_router, prefix=api_prefix)
 app.include_router(evac_routing_router, prefix=api_prefix)
+
+
+@app.on_event("startup")
+def startup_event():
+    print("Building RAG index at startup...")
+    build_index()
+    print("RAG index ready")
+
 
 @app.get("/api/health")
 def health_check():
