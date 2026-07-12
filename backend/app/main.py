@@ -12,6 +12,7 @@ from app.routes.compliance import router as compliance_router
 from app.routes.replay import router as replay_router
 from app.routes.evidence_chain import router as evidence_chain_router
 from app.routes.evac_routing import router as evac_routing_router
+from app.routes.vibration import router as vibration_router
 from app.services.rag_service import build_index
 
 app = FastAPI(title="risk-dashboard API")
@@ -37,6 +38,7 @@ app.include_router(compliance_router, prefix=api_prefix)
 app.include_router(replay_router, prefix=api_prefix)
 app.include_router(evidence_chain_router, prefix=api_prefix)
 app.include_router(evac_routing_router, prefix=api_prefix)
+app.include_router(vibration_router, prefix=api_prefix)
 
 
 @app.on_event("startup")
