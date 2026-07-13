@@ -9,6 +9,7 @@ from app.routes.permit_detector import router as permit_detector_router
 from app.routes.replay import router as replay_router
 from app.routes.evidence_chain import router as evidence_chain_router
 from app.routes.evac_routing import router as evac_routing_router
+from app.routes.vibration_check import router as vibration_check_router
 
 app = FastAPI(title="risk-dashboard API")
 
@@ -30,6 +31,7 @@ app.include_router(permit_detector_router, prefix=api_prefix)
 app.include_router(replay_router, prefix=api_prefix)
 app.include_router(evidence_chain_router, prefix=api_prefix)
 app.include_router(evac_routing_router, prefix=api_prefix)
+app.include_router(vibration_check_router, prefix=api_prefix)
 
 @app.get("/api/health")
 def health_check():

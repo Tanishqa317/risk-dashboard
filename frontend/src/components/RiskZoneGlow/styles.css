@@ -1,0 +1,68 @@
+.risk-zone-glow {
+  position: relative;
+  border-radius: 1.5rem;
+  padding: 1.5rem;
+  min-width: 220px;
+  color: white;
+  overflow: hidden;
+  background: radial-gradient(circle at top left, var(--glow-inner, #a7f3d0) 0%, transparent 38%),
+              radial-gradient(circle at bottom right, var(--glow-outer, #4ade80) 0%, transparent 42%),
+              linear-gradient(135deg, rgba(15, 23, 42, 0.92), rgba(15, 23, 42, 0.72));
+  box-shadow: 0 0 40px rgba(0, 0, 0, 0.18);
+  backdrop-filter: blur(8px);
+  animation: pulseGlow var(--pulse-duration, 2.5s) ease-in-out infinite;
+}
+
+.risk-zone-glow::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: radial-gradient(circle, var(--glow-accent, #22c55e) 0%, transparent 36%);
+  opacity: 0.18;
+  filter: blur(22px);
+  transform: scale(1.05);
+}
+
+.risk-zone-glow__content {
+  position: relative;
+  z-index: 1;
+}
+
+.risk-zone-glow__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.risk-zone-glow__label {
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.risk-zone-glow__score {
+  font-size: 1.6rem;
+  font-weight: 800;
+}
+
+.risk-zone-glow__description {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.8);
+  line-height: 1.5;
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    transform: translateZ(0) scale(1);
+    box-shadow: 0 0 25px rgba(255, 255, 255, 0.08), 0 0 60px rgba(255, 255, 255, 0.04);
+  }
+  50% {
+    transform: translateZ(0) scale(1.01);
+    box-shadow: 0 0 50px rgba(255, 255, 255, 0.12), 0 0 90px rgba(255, 255, 255, 0.08);
+  }
+}
