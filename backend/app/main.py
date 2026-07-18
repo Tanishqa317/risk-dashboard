@@ -12,12 +12,8 @@ from app.routes.compliance import router as compliance_router
 from app.routes.replay import router as replay_router
 from app.routes.evidence_chain import router as evidence_chain_router
 from app.routes.evac_routing import router as evac_routing_router
-<<<<<<< HEAD
-from app.routes.vibration_check import router as vibration_check_router
-=======
 from app.routes.vibration import router as vibration_router
 from app.services.rag_service import build_index
->>>>>>> 5af3005d3c20a4e5d8b623b0bc9590d29df1ec39
 
 app = FastAPI(title="risk-dashboard API")
 
@@ -42,9 +38,6 @@ app.include_router(compliance_router, prefix=api_prefix)
 app.include_router(replay_router, prefix=api_prefix)
 app.include_router(evidence_chain_router, prefix=api_prefix)
 app.include_router(evac_routing_router, prefix=api_prefix)
-<<<<<<< HEAD
-app.include_router(vibration_check_router, prefix=api_prefix)
-=======
 app.include_router(vibration_router, prefix=api_prefix)
 
 
@@ -54,7 +47,6 @@ def startup_event():
     build_index()
     print("RAG index ready")
 
->>>>>>> 5af3005d3c20a4e5d8b623b0bc9590d29df1ec39
 
 @app.get("/api/health")
 def health_check():
