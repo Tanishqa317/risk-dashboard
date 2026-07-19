@@ -1,46 +1,65 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import PageHeader from '../components/PageHeader';
-import { Map, AlertTriangle, Users, Route as RouteIcon } from 'lucide-react';
-import type { WorkerNode, ExitNode } from '../types/telemetry';
+import { Map, AlertTriangle, Users, Route as RouteIcon, RefreshCw } from 'lucide-react';
 
-const NOMINAL_WORKERS: WorkerNode[] = [
-  { id: 'W-12', x: 0.15, y: 0.2, label: 'W-12' },
-  { id: 'W-04', x: 0.32, y: 0.7, label: 'W-04' },
-  { id: 'W-09', x: 0.6, y: 0.3, label: 'W-09' },
-  { id: 'W-21', x: 0.78, y: 0.65, label: 'W-21' },
-  { id: 'W-15', x: 0.45, y: 0.5, label: 'W-15' },
-];
+const API_BASE = 'http://127.0.0.1:8000/api';
+const UNIT_ID = 'unit-1';
 
-// Alternate positions — workers slide away from the central danger zone and
-// converge toward the alternate exit vector (upper-right).
-const COMPROMISED_WORKERS: WorkerNode[] = [
-  { id: 'W-12', x: 0.08, y: 0.12, label: 'W-12' },
-  { id: 'W-04', x: 0.18, y: 0.82, label: 'W-04' },
-  { id: 'W-09', x: 0.82, y: 0.18, label: 'W-09' },
-  { id: 'W-21', x: 0.86, y: 0.78, label: 'W-21' },
-  { id: 'W-15', x: 0.72, y: 0.42, label: 'W-15' },
-];
+type WorkerNode = { id: string; label: string; x: number; y: number };
+type DangerZone = { x: number; y: number; r: number; zone_id: string; gas_ppm: number };
+type ExitNode = { id: string; x: number; y: number; label: string };
+type ActivePath = { worker_id: string; status: string };
 
-const PRIMARY_EXIT: ExitNode = { id: 'EXIT', x: 0.92, y: 0.88, label: 'EXIT·GATE' };
-const ALT_EXIT: ExitNode = { id: 'ALT-EXIT', x: 0.92, y: 0.18, label: 'ALT·GATE' };
+type EvacData = {
+  unit_id: string;
+  compromised: boolean;
+  workers: WorkerNode[];
+  danger_zones: DangerZone[];
+  exit: ExitNode;
+  active_paths: ActivePath[];
+  evac_eta: string;
+  eta_note: string;
+};
 
 export default function Evacuation() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [compromised, setCompromised] = useState(false);
   const [tick, setTick] = useState(0);
+  const [data, setData] = useState<EvacData | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
-  const workers = compromised ? COMPROMISED_WORKERS : NOMINAL_WORKERS;
-  const exit = compromised ? ALT_EXIT : PRIMARY_EXIT;
+  const fetchEvac = useCallback(async (nextCompromised: boolean) => {
+    setLoading(true);
+    setFetchError(null);
+    try {
+      const res = await fetch(
+        `${API_BASE}/evac-routing?unit_id=${UNIT_ID}&compromised=${nextCompromised}`,
+      );
+      if (!res.ok) throw new Error(`Backend returned ${res.status}`);
+      const json: EvacData = await res.json();
+      setData(json);
+    } catch (err) {
+      setFetchError(err instanceof Error ? err.message : 'Failed to reach backend');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchEvac(false); // initial nominal load — no auto-polling
+  }, [fetchEvac]);
+
+  const workers = data?.workers ?? [];
+  const dangerZones = data?.danger_zones ?? [];
+  const exit = data?.exit ?? { id: 'EXIT', x: 0.92, y: 0.88, label: 'EXIT GATE' };
 
   useEffect(() => {
     const id = setInterval(() => setTick((t) => t + 1), 50);
     return () => clearInterval(id);
   }, []);
 
-  // Canvas draws schematic + danger zones + dashed routing paths only.
-  // Worker dots are rendered as Framer Motion SVG elements on top so they
-  // smoothly morph between positions when compromised toggles.
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -57,14 +76,6 @@ export default function Evacuation() {
     resize();
     const ro = new ResizeObserver(resize);
     ro.observe(canvas);
-
-    const dangerZones = compromised
-      ? [
-          { x: 0.5, y: 0.5, r: 110 },
-          { x: 0.3, y: 0.4, r: 70 },
-          { x: 0.7, y: 0.7, r: 60 },
-        ]
-      : [{ x: 0.4, y: 0.45, r: 80 }];
 
     const draw = () => {
       const w = canvas.clientWidth;
@@ -95,7 +106,7 @@ export default function Evacuation() {
       }
       ctx.setLineDash([]);
 
-      // Danger zones
+      // Danger zones — from real gas_ppm-derived data
       dangerZones.forEach((z, i) => {
         const cx = z.x * w;
         const cy = z.y * h;
@@ -160,39 +171,61 @@ export default function Evacuation() {
       cancelAnimationFrame(raf);
       ro.disconnect();
     };
-  }, [compromised, tick, workers, exit]);
+  }, [compromised, tick, workers, exit, dangerZones]);
+
+  const toggleCompromised = () => {
+    const next = !compromised;
+    setCompromised(next);
+    fetchEvac(next);
+  };
 
   return (
     <div className="flex h-full flex-col p-6">
       <PageHeader
-        code="VIT·06 / EVACUATION"
+        code="VIT-06 / EVACUATION"
         title="Evacuation Map & Rerouting"
         subtitle="Top-down site schematic with live worker nodes and dynamically optimized escape vectors."
         right={
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={() => setCompromised((c) => !c)}
-            className="flex items-center gap-2 rounded-md border border-crimson-vitals/40 bg-crimson-vitals/10 px-4 py-2 text-[11px] font-medium tracking-wider text-crimson-vitals glow-crimson transition-all hover:bg-crimson-vitals/20"
-          >
-            <AlertTriangle size={12} />
-            {compromised ? 'RESET TO NOMINAL' : 'SIMULATE STRUCTURAL COMPROMISE'}
-          </motion.button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => fetchEvac(compromised)}
+              disabled={loading}
+              className="glass glass-hover flex items-center gap-2 rounded-md px-3 py-2 text-[11px] text-slate-200 disabled:opacity-50"
+            >
+              <RefreshCw size={12} className={loading ? 'animate-spin' : ''} />
+              {loading ? 'LOADING' : 'REFRESH'}
+            </button>
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={toggleCompromised}
+              disabled={loading}
+              className="flex items-center gap-2 rounded-md border border-crimson-vitals/40 bg-crimson-vitals/10 px-4 py-2 text-[11px] font-medium tracking-wider text-crimson-vitals glow-crimson transition-all hover:bg-crimson-vitals/20 disabled:opacity-50"
+            >
+              <AlertTriangle size={12} />
+              {compromised ? 'RESET TO NOMINAL' : 'SIMULATE STRUCTURAL COMPROMISE'}
+            </motion.button>
+          </div>
         }
       />
+
+      {fetchError && (
+        <div className="mb-3 glass rounded-md border border-amber-cyber/30 px-4 py-2 hud-mono text-[10px] text-amber-cyber">
+          BACKEND UNREACHABLE - {fetchError}
+        </div>
+      )}
 
       <div className="grid flex-1 grid-cols-1 gap-4 overflow-hidden lg:grid-cols-4">
         <div className="glass relative overflow-hidden rounded-lg lg:col-span-3">
           <div className="absolute left-4 top-4 z-10 flex items-center gap-2">
             <Map size={14} className="text-mint glow-mint" />
-            <span className="hud-label">SITE SCHEMATIC · EVAC ROUTING</span>
+            <span className="hud-label">SITE SCHEMATIC - EVAC ROUTING</span>
           </div>
           <div className="absolute right-4 top-4 z-10 hud-mono text-[10px] text-slate-500">
-            {compromised ? '● COMPROMISED · REROUTING' : '● NOMINAL'}
+            {compromised ? '● COMPROMISED - REROUTING' : '● NOMINAL'}
           </div>
           <canvas ref={canvasRef} className="h-full w-full" />
 
-          {/* Worker dots rendered as Framer Motion SVG overlay for smooth morphing */}
           <svg className="pointer-events-none absolute inset-0 h-full w-full" preserveAspectRatio="none" viewBox="0 0 100 100">
             {workers.map((w, i) => (
               <motion.circle
@@ -215,7 +248,6 @@ export default function Evacuation() {
                 }}
               />
             ))}
-            {/* Worker labels */}
             {workers.map((w) => (
               <motion.text
                 key={`${w.id}-label`}
@@ -243,7 +275,7 @@ export default function Evacuation() {
             <div className="hud-mono mt-2 text-[36px] font-semibold text-white glow-mint">
               {workers.length}
             </div>
-            <div className="hud-mono text-[10px] text-slate-500">5 nodes · live tracking</div>
+            <div className="hud-mono text-[10px] text-slate-500">{workers.length} nodes - live tracking</div>
           </div>
 
           <div className="glass rounded-lg p-5">
@@ -252,12 +284,10 @@ export default function Evacuation() {
               <span className="hud-label">ACTIVE PATHS</span>
             </div>
             <div className="mt-3 space-y-2">
-              {workers.map((w) => (
-                <div key={w.id} className="flex items-center justify-between">
-                  <span className="hud-mono text-[10px] text-slate-400">{w.label}</span>
-                  <span className="hud-mono text-[10px] text-mint glow-mint">
-                    {compromised ? 'REROUTED' : 'OPTIMAL'}
-                  </span>
+              {(data?.active_paths ?? []).map((p) => (
+                <div key={p.worker_id} className="flex items-center justify-between">
+                  <span className="hud-mono text-[10px] text-slate-400">{p.worker_id}</span>
+                  <span className="hud-mono text-[10px] text-mint glow-mint">{p.status}</span>
                 </div>
               ))}
             </div>
@@ -272,11 +302,9 @@ export default function Evacuation() {
               transition={{ stiffness: 100, damping: 15 }}
               className="hud-mono text-[28px] font-semibold text-mint glow-mint"
             >
-              {compromised ? '02:56' : '02:14'}
+              {data?.evac_eta ?? '--:--'}
             </motion.div>
-            <div className="hud-mono mt-1 text-[10px] text-slate-500">
-              {compromised ? '+0:42 rerouting overhead' : 'avg · all paths nominal'}
-            </div>
+            <div className="hud-mono mt-1 text-[10px] text-slate-500">{data?.eta_note ?? ''}</div>
           </div>
         </div>
       </div>
