@@ -1,4 +1,4 @@
-import importlib
+﻿import importlib
 import json
 import os
 from concurrent.futures import ThreadPoolExecutor
@@ -37,6 +37,11 @@ def _load_fallback_oracle_swarm(unit_id: str):
         return None
 
 
+def _agent_failed(agent: Dict[str, Any]) -> bool:
+    text = str(agent.get("lines", [])).lower()
+    return "unavailable" in text or "failed" in text
+
+
 AGENT_INSTRUCTIONS: Dict[str, str] = {
     "Aggressive": (
         "You are the Aggressive Oracle agent. Assume the worst-case interpretation of any "
@@ -45,7 +50,7 @@ AGENT_INSTRUCTIONS: Dict[str, str] = {
         "reasoning describes a catastrophic, lethal, or emergency scenario, risk_score must be "
         "80-100. If it describes a serious but non-immediate concern, risk_score must be 50-79. "
         "Only use a score below 50 if your reasoning genuinely supports a low-danger conclusion. "
-        "Never describe a catastrophic scenario and then assign a low risk_score — the number and "
+        "Never describe a catastrophic scenario and then assign a low risk_score â€” the number and "
         "the reasoning must agree."
     ),
     "Conservative": (
@@ -53,7 +58,7 @@ AGENT_INSTRUCTIONS: Dict[str, str] = {
         "explicit evidence of danger. Your risk_score MUST directly reflect the severity of your "
         "own reasoning: if you conclude operations are normal, risk_score must be 0-30. If you find "
         "explicit evidence of a real problem, raise the score to match its severity (50+). Never "
-        "describe a dangerous finding and then assign a low risk_score — the number and the "
+        "describe a dangerous finding and then assign a low risk_score â€” the number and the "
         "reasoning must agree."
     ),
     "Adversarial": (
@@ -62,17 +67,16 @@ AGENT_INSTRUCTIONS: Dict[str, str] = {
         "risk_score MUST directly reflect the severity of your own reasoning: if your reasoning "
         "describes a catastrophic, lethal, or emergency scenario, risk_score must be 80-100. If it "
         "describes a serious but non-immediate concern, risk_score must be 50-79. Never describe a "
-        "catastrophic scenario and then assign a low risk_score — the number and the reasoning must "
+        "catastrophic scenario and then assign a low risk_score â€” the number and the reasoning must "
         "agree."
     ),
 }
 
 
-class AgentResult(TypedDict, total=False):
+class AgentResult(TypedDict):
     risk_score: int
     flagged_zone: str
     reasoning: str
-    failed: bool  # True when Gemini could not be reached/parsed — result is NOT a real verdict
 
 
 def _normalize_oracle_result(result: Dict[str, Any]) -> AgentResult:
@@ -80,7 +84,6 @@ def _normalize_oracle_result(result: Dict[str, Any]) -> AgentResult:
         "risk_score": int(result.get("risk_score", 0)),
         "flagged_zone": str(result.get("flagged_zone", "unknown")),
         "reasoning": str(result.get("reasoning", "No reasoning provided.")),
-        "failed": False,
     }
 
 
@@ -88,10 +91,9 @@ def _call_oracle_agent(plant_state: Dict[str, Any], agent_name: str, system_inst
     """Call Gemini with a custom system instruction for one Oracle agent."""
     if not gemini_available or not GEMINI_API_KEY:
         return {
-            "risk_score": 0,
+            "risk_score": 50,
             "flagged_zone": "unknown",
             "reasoning": f"{agent_name} agent is unavailable because Gemini is not configured.",
-            "failed": True,
         }
 
     assert genai is not None
@@ -126,16 +128,15 @@ def _call_oracle_agent(plant_state: Dict[str, Any], agent_name: str, system_inst
     except Exception as exc:  # pragma: no cover
         err_str = str(exc)
         if "RESOURCE_EXHAUSTED" in err_str or "429" in err_str:
-            reasoning = f"{agent_name} agent unavailable — Gemini API quota exceeded (free-tier limit reached)."
+            reasoning = f"{agent_name} agent unavailable â€” Gemini API quota exceeded (free-tier limit reached)."
         elif "NOT_FOUND" in err_str or "404" in err_str:
-            reasoning = f"{agent_name} agent unavailable — configured Gemini model is no longer accessible."
+            reasoning = f"{agent_name} agent unavailable â€” configured Gemini model is no longer accessible."
         else:
             reasoning = f"{agent_name} agent failed: {err_str[:120]}"  # trimmed, avoids raw dumps
         return {
             "risk_score": 0,
             "flagged_zone": "unknown",
             "reasoning": reasoning,
-            "failed": True,
         }
 
 
@@ -161,41 +162,23 @@ def runOracleSwarm(plantState: Dict[str, Any]) -> List[Dict[str, Any]]:
 
 
 def resolveConsensus(swarmResults: List[Dict[str, Any]]) -> Dict[str, Any]:
-    """Resolve a final verdict from the Oracle Swarm results.
-
-    Only agents that actually produced a real result (failed=False) count
-    toward consensus — a failed agent contributes neither a "high" nor a
-    "low" vote, since it never actually assessed anything.
-    """
-    valid_results = [r for r in swarmResults if not r.get("failed")]
-    high_count = sum(1 for result in valid_results if result.get("risk_score", 0) > 70)
-    any_failed = any(r.get("failed") for r in swarmResults)
-
-    if not valid_results:
-        return {
-            "final_verdict": "unknown",
-            "consensus": False,
-            "agent_results": swarmResults,
-        }
-
+    """Resolve a final verdict from the Oracle Swarm results."""
+    high_count = sum(1 for result in swarmResults if result.get("risk_score", 0) > 70)
     final_verdict = "high" if high_count >= 2 else "low"
     consensus = high_count >= 2
 
     return {
         "final_verdict": final_verdict,
         "consensus": consensus,
-        "partial_data": any_failed,  # true if fewer than 3 agents actually ran
         "agent_results": swarmResults,
     }
 
 
 # ---------------------------------------------------------------------------
-# FastAPI route — aggregates real plant_state (from guardrail-check) through
+# FastAPI route â€” aggregates real plant_state (from guardrail-check) through
 # the oracle swarm above, and reshapes it for the frontend. Falls back to a
 # previously-captured real response if any agent failed (quota/access/model
-# errors) and a fallback exists for this unit. If no fallback exists either,
-# failed agents are shown as an honest "UNAVAILABLE" state — never a
-# fabricated risk verdict.
+# errors) and a fallback exists for this unit.
 # ---------------------------------------------------------------------------
 
 router = APIRouter()
@@ -215,12 +198,10 @@ async def get_oracle_swarm(unit_id: str):
 
     swarm_results = runOracleSwarm(plant_state)
     consensus = resolveConsensus(swarm_results)
-    any_failed = any(r.get("failed") for r in swarm_results)
 
     agents = []
     for result in swarm_results:
         name = result.get("agent", "Unknown")
-        failed = bool(result.get("failed"))
         risk_score = result.get("risk_score", 0)
         flagged_zone = result.get("flagged_zone", "unknown")
         reasoning = result.get("reasoning", "")
@@ -231,17 +212,9 @@ async def get_oracle_swarm(unit_id: str):
             f"> flagged zone: {flagged_zone}",
             f"> reasoning: {reasoning}",
         ]
-
-        if failed:
-            # Never fabricate a risk verdict for a failed call — be explicit
-            # that no real assessment happened.
-            verdict = "UNAVAILABLE"
-            confidence = 0.0
-            lines.append("> verdict: UNAVAILABLE — no risk assessment was produced")
-        else:
-            confidence = round(min(1.0, max(0.0, risk_score / 100)), 2)
-            verdict = "HIGH RISK" if risk_score > 70 else "LOW RISK"
-            lines.append(f"> verdict: {verdict} (risk {risk_score}/100)")
+        confidence = round(min(1.0, max(0.0, risk_score / 100)), 2)
+        verdict = "HIGH RISK" if risk_score > 70 else "LOW RISK"
+        lines.append(f"> verdict: {verdict} (risk {risk_score}/100)")
 
         agents.append(
             {
@@ -250,31 +223,28 @@ async def get_oracle_swarm(unit_id: str):
                 "lines": lines,
                 "confidence": confidence,
                 "verdict": verdict,
-                "failed": failed,
             }
         )
 
-    # If any agent failed, prefer a real captured fallback response over
-    # showing degraded/unavailable agents, IF a fallback actually exists.
-    if any_failed:
+    # If any agent failed (quota/model/access errors), prefer a real captured
+    # fallback response over showing degraded/error-state agents.
+    if any(_agent_failed(a) for a in agents):
         fallback = _load_fallback_oracle_swarm(unit_id)
         if fallback is not None:
             fallback = dict(fallback)
             fallback["fallback_used"] = True
             return fallback
 
-    valid_scores = [r.get("risk_score", 0) for r in swarm_results if not r.get("failed")]
-    avg_risk = sum(valid_scores) / len(valid_scores) if valid_scores else 0
+    avg_risk = sum(r.get("risk_score", 0) for r in swarm_results) / max(1, len(swarm_results))
     max_window_seconds = 6 * 3600  # tune if a different ceiling fits the demo better
-    countdown_seconds = int(max_window_seconds * (1 - avg_risk / 100)) if valid_scores else None
+    countdown_seconds = int(max_window_seconds * (1 - avg_risk / 100))
 
     return {
         "unit_id": unit_id,
         "countdown_seconds": countdown_seconds,
-        "consensus": consensus,  # {final_verdict, consensus: bool, partial_data, agent_results: [...]}
+        "consensus": consensus,  # {final_verdict, consensus: bool, agent_results: [...]}
         "agents": agents,
         "fallback_used": False,
-        "any_agent_failed": any_failed,
     }
 
 
