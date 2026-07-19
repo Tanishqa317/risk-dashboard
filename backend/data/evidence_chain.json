@@ -1,1 +1,25 @@
-[{"event_type": "test", "unit_id": "unit-1", "payload": {"value": 0}, "timestamp": "2026-07-10T07:41:10.606096", "entry_id": 1, "previous_hash": "0000000000000000000000000000000000000000000000000000000000000000", "entry_hash": "e956e92cadace8aaa91a234abce27cf84186bd1ad88a266712d0c79a6a13d189"}, {"event_type": "test", "unit_id": "unit-1", "payload": {"tampered": true}, "timestamp": "2026-07-10T07:41:10.607140", "entry_id": 2, "previous_hash": "e956e92cadace8aaa91a234abce27cf84186bd1ad88a266712d0c79a6a13d189", "entry_hash": "59e2128e2b285e332c220780c19e464f5084fe1a3eca8bda58ea583e62851f72"}, {"event_type": "test", "unit_id": "unit-1", "payload": {"value": 2}, "timestamp": "2026-07-10T07:41:10.608133", "entry_id": 3, "previous_hash": "59e2128e2b285e332c220780c19e464f5084fe1a3eca8bda58ea583e62851f72", "entry_hash": "bc59b98fe52f19623dd2f88b7a00e5a59d139fc3dd87e5ac0486133e9a49dbff"}]
+[
+  {
+    "event_type": "risk_assessment",
+    "unit_id": "unit-1",
+    "payload": {
+      "tampered": true,
+      "note": "Manually tampered from UI demo"
+    },
+    "timestamp": "2026-07-19T14:05:15.367645",
+    "entry_id": 1,
+    "previous_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+    "entry_hash": "32ea8d2b926c01030d0782b5c9496a4acea9419f9e4c1d6f9e5de321473e3d7d"
+  },
+  {
+    "event_type": "flatline_check",
+    "unit_id": "unit-1",
+    "payload": {
+      "flatline_flags": []
+    },
+    "timestamp": "2026-07-19T14:05:15.367763",
+    "entry_id": 2,
+    "previous_hash": "32ea8d2b926c01030d0782b5c9496a4acea9419f9e4c1d6f9e5de321473e3d7d",
+    "entry_hash": "c3da21fa41a6cc3ce910c82e61f968bbedbefadaffcf290a9db3b8341bbec8f3"
+  }
+]

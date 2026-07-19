@@ -76,15 +76,28 @@ def generate_demo_alerts(unit_id: str) -> List[AlarmEvent]:
 
     try:
         assessment = get_risk_assessment(unit_id)
-        alerts.append(
-            AlarmEvent(
-                unit_id=unit_id,
-                source="correlation",
-                severity="high" if assessment.get("risk_score", 0) >= 70 else "medium",
-                message=assessment.get("reasoning") or "Correlation engine alert",
-                timestamp=datetime.now(timezone.utc),
+        if assessment.get("error"):
+            # Correlation engine failed (Gemini quota, network, etc.) — do NOT
+            # leak the raw exception text as if it were a plant safety alert.
+            alerts.append(
+                AlarmEvent(
+                    unit_id=unit_id,
+                    source="correlation",
+                    severity="low",
+                    message="Correlation engine temporarily unavailable — risk assessment skipped for this cycle.",
+                    timestamp=datetime.now(timezone.utc),
+                )
             )
-        )
+        else:
+            alerts.append(
+                AlarmEvent(
+                    unit_id=unit_id,
+                    source="correlation",
+                    severity="high" if assessment.get("risk_score", 0) >= 70 else "medium",
+                    message=assessment.get("primary_concern") or assessment.get("reasoning") or "Correlation engine alert",
+                    timestamp=datetime.now(timezone.utc),
+                )
+            )
     except Exception:
         pass
 
@@ -117,7 +130,7 @@ def generate_demo_alerts(unit_id: str) -> List[AlarmEvent]:
             zones=[
                 ZoneState(
                     zone_id=f"{unit_id}-zone-1",
-                    gas_ppm=600.0,
+                    gas_ppm=550.0 + (abs(hash(unit_id)) % 300),
                     active_permits=[Permit(permit_type="hot-work")],
                     supervisors_present=1,
                 )
