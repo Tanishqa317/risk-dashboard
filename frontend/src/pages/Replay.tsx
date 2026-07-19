@@ -1,25 +1,54 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import PageHeader from '../components/PageHeader';
-import { History, GitBranch, Play, Pause, FastForward } from 'lucide-react';
+import { History, GitBranch, Play, Pause, FastForward, RefreshCw } from 'lucide-react';
 
-const EVENTS = [
-  { t: 0.04, label: 'Permit #CW-4471 issued', tone: 'mint' },
-  { t: 0.12, label: 'Gas concentration +18ppm', tone: 'amber' },
-  { t: 0.23, label: 'Permit #CW-4480 — gaming detected', tone: 'crimson' },
-  { t: 0.34, label: 'Guardrail override blocked', tone: 'mint' },
-  { t: 0.46, label: 'Vibration anomaly on RX-09', tone: 'amber' },
-  { t: 0.58, label: 'Counterfactual divergence peak', tone: 'crimson' },
-  { t: 0.71, label: 'Sensor SA-119 flatline', tone: 'crimson' },
-  { t: 0.83, label: 'Evacuation route recalculated', tone: 'mint' },
-  { t: 0.92, label: 'Incident contained', tone: 'mint' },
-];
+const API_BASE = 'http://127.0.0.1:8000/api';
+const UNIT_ID = 'unit-1'; // TODO: wire to global unit selector if/when one exists
+
+type TimelineEvent = {
+  t: number;
+  label: string;
+  tone: 'mint' | 'amber' | 'crimson';
+  zone?: string;
+};
+
+type ReplayData = {
+  unit_id: string;
+  window_hours: number;
+  timeline: TimelineEvent[];
+  historical_series: number[];
+  counterfactual_series: number[];
+};
 
 export default function Replay() {
   const [scrub, setScrub] = useState(0.23);
   const [playing, setPlaying] = useState(true);
+  const [hoveredEvent, setHoveredEvent] = useState<string | null>(null);
+  const [data, setData] = useState<ReplayData | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const histCanvas = useRef<HTMLCanvasElement>(null);
   const cfCanvas = useRef<HTMLCanvasElement>(null);
+
+  const fetchReplay = useCallback(async () => {
+    setLoading(true);
+    setFetchError(null);
+    try {
+      const res = await fetch(`${API_BASE}/replay?unit_id=${UNIT_ID}`);
+      if (!res.ok) throw new Error(`Backend returned ${res.status}`);
+      const json: ReplayData = await res.json();
+      setData(json);
+    } catch (err) {
+      setFetchError(err instanceof Error ? err.message : 'Failed to reach backend');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchReplay(); // one-time load — no auto-polling
+  }, [fetchReplay]);
 
   useEffect(() => {
     if (!playing) return;
@@ -30,9 +59,13 @@ export default function Replay() {
   }, [playing]);
 
   useEffect(() => {
+    if (!data) return;
+
     const draw = (
       canvas: HTMLCanvasElement | null,
-      mode: 'history' | 'counterfactual',
+      series: number[],
+      color: string,
+      glow: string,
     ) => {
       if (!canvas) return;
       const ctx = canvas.getContext('2d');
@@ -61,35 +94,29 @@ export default function Replay() {
         ctx.stroke();
       }
 
+      const min = Math.min(...series);
+      const max = Math.max(...series);
+      const range = max - min || 1;
       const mid = h * 0.55;
-      const color = mode === 'history' ? '#00ffaa' : '#ff1e56';
-      const glow = mode === 'history' ? 'rgba(0,255,170,0.5)' : 'rgba(255,30,86,0.5)';
+      const scaleY = (v: number) => mid - ((v - min) / range - 0.5) * (h * 0.7);
 
       ctx.strokeStyle = color;
       ctx.lineWidth = 1.4;
       ctx.shadowColor = glow;
       ctx.shadowBlur = 8;
       ctx.beginPath();
-      for (let x = 0; x <= w; x += 1) {
-        const phase = (x / w) * Math.PI * 4;
-        let y = mid;
-        if (mode === 'history') {
-          y -= Math.sin(phase) * 18 + Math.sin(phase * 2.3) * 8;
-          if (x / w > 0.7) y -= Math.sin(phase * 6) * 14;
-        } else {
-          y -= Math.sin(phase) * 18 + Math.sin(phase * 2.3) * 8;
-          // Volatile divergence
-          const div = Math.max(0, (x / w - 0.2)) * 80;
-          y -= Math.sin(phase * 3.7) * div + (Math.random() - 0.5) * div * 0.3;
-        }
-        if (x === 0) ctx.moveTo(x, y);
+      series.forEach((v, i) => {
+        const x = (i / (series.length - 1)) * w;
+        const y = scaleY(v);
+        if (i === 0) ctx.moveTo(x, y);
         else ctx.lineTo(x, y);
-      }
+      });
       ctx.stroke();
       ctx.shadowBlur = 0;
 
       // Scrub head
       const sx = scrub * w;
+      const idx = Math.min(series.length - 1, Math.floor(scrub * series.length));
       ctx.strokeStyle = 'rgba(255,255,255,0.3)';
       ctx.lineWidth = 1;
       ctx.beginPath();
@@ -98,26 +125,53 @@ export default function Replay() {
       ctx.stroke();
       ctx.fillStyle = color;
       ctx.beginPath();
-      ctx.arc(sx, mid, 3, 0, Math.PI * 2);
+      ctx.arc(sx, scaleY(series[idx]), 3, 0, Math.PI * 2);
       ctx.fill();
     };
-    draw(histCanvas.current, 'history');
-    draw(cfCanvas.current, 'counterfactual');
-  }, [scrub]);
 
-  const currentEvents = useMemo(() => EVENTS.filter((e) => e.t <= scrub), [scrub]);
-  const timeLabel = `T+${String(Math.floor(scrub * 24)).padStart(2, '0')}:${String(
-    Math.floor((scrub * 24 * 60) % 60),
-  ).padStart(2, '0')}:${String(Math.floor((scrub * 24 * 3600) % 60)).padStart(2, '0')}`;
+    draw(histCanvas.current, data.historical_series, '#00ffaa', 'rgba(0,255,170,0.5)');
+    draw(cfCanvas.current, data.counterfactual_series, '#ff1e56', 'rgba(255,30,86,0.5)');
+
+    const ro = new ResizeObserver(() => {
+      draw(histCanvas.current, data.historical_series, '#00ffaa', 'rgba(0,255,170,0.5)');
+      draw(cfCanvas.current, data.counterfactual_series, '#ff1e56', 'rgba(255,30,86,0.5)');
+    });
+    if (histCanvas.current) ro.observe(histCanvas.current);
+    if (cfCanvas.current) ro.observe(cfCanvas.current);
+    return () => ro.disconnect();
+  }, [scrub, data]);
+
+  const events = data?.timeline ?? [];
+  const currentEvents = useMemo(() => events.filter((e) => e.t <= scrub), [events, scrub]);
+  // index (within `events`) of the most recently passed event — used to ring it distinctly
+  const activeIdx = useMemo(() => {
+    let idx = -1;
+    events.forEach((e, i) => {
+      if (e.t <= scrub) idx = i;
+    });
+    return idx;
+  }, [events, scrub]);
+  const windowHours = data?.window_hours ?? 24;
+  const timeLabel = `T+${String(Math.floor(scrub * windowHours)).padStart(2, '0')}:${String(
+    Math.floor((scrub * windowHours * 60) % 60),
+  ).padStart(2, '0')}:${String(Math.floor((scrub * windowHours * 3600) % 60)).padStart(2, '0')}`;
 
   return (
-    <div className="flex h-full flex-col p-6">
+    <div className="flex h-full flex-col overflow-y-auto p-6">
       <PageHeader
         code="VIT·04 / COUNTERFACTUAL REPLAY"
         title="Counterfactual Replay Engine"
         subtitle="Digital Twin stress-test — historical reality vs. adversarial permit-gaming counterfactual."
         right={
           <div className="flex items-center gap-2">
+            <button
+              onClick={fetchReplay}
+              disabled={loading}
+              className="glass glass-hover flex items-center gap-2 rounded-md px-3 py-2 text-[11px] text-slate-200 disabled:opacity-50"
+            >
+              <RefreshCw size={12} className={loading ? 'animate-spin' : ''} />
+              {loading ? 'LOADING' : 'REFRESH'}
+            </button>
             <button
               onClick={() => setPlaying((p) => !p)}
               className="glass glass-hover flex items-center gap-2 rounded-md px-3 py-2 text-[11px] text-slate-200"
@@ -135,7 +189,13 @@ export default function Replay() {
         }
       />
 
-      <div className="grid flex-1 grid-cols-1 gap-4 overflow-hidden lg:grid-cols-2">
+      {fetchError && (
+        <div className="mb-3 glass rounded-md border border-amber-cyber/30 px-4 py-2 hud-mono text-[10px] text-amber-cyber">
+          BACKEND UNREACHABLE · {fetchError}
+        </div>
+      )}
+
+      <div className="grid flex-1 min-h-[300px] grid-cols-1 gap-4 overflow-hidden lg:grid-cols-2">
         <Viewport
           title="HISTORICAL REALITY PATH"
           subtitle="Recorded telemetry · 24h crisis window"
@@ -154,10 +214,9 @@ export default function Replay() {
         />
       </div>
 
-      {/* Timeline scrubber */}
-      <div className="glass mt-4 rounded-lg p-4">
+      <div className="glass mt-4 shrink-0 rounded-lg p-4">
         <div className="mb-2 flex items-center justify-between">
-          <span className="hud-label">TIMELINE · 24H CRISIS WINDOW</span>
+          <span className="hud-label">TIMELINE · {windowHours}H CRISIS WINDOW</span>
           <span className="hud-mono text-[11px] text-mint glow-mint">{timeLabel}</span>
         </div>
         <div className="relative">
@@ -173,29 +232,53 @@ export default function Replay() {
             }}
             className="hud-range w-full"
           />
-          <div className="relative mt-3 h-6">
-            {EVENTS.map((e) => (
-              <div
-                key={e.label}
-                className="absolute flex -translate-x-1/2 flex-col items-center"
-                style={{ left: `${e.t * 100}%` }}
-              >
-                <span
-                  className="h-2 w-2 rounded-full"
-                  style={{
-                    background: e.tone === 'mint' ? '#00ffaa' : e.tone === 'amber' ? '#ffaa00' : '#ff1e56',
-                    boxShadow: `0 0 6px ${e.tone === 'mint' ? 'rgba(0,255,170,0.6)' : e.tone === 'amber' ? 'rgba(255,170,0,0.6)' : 'rgba(255,30,86,0.6)'}`,
-                  }}
-                />
-                <span className="hud-mono mt-1 hidden whitespace-nowrap text-[8px] text-slate-500 lg:block">
-                  {e.label}
-                </span>
-              </div>
-            ))}
+          <div className="relative mt-3 h-16">
+            {events.map((e, i) => {
+              const dotColor =
+                e.tone === 'mint' ? '#00ffaa' : e.tone === 'amber' ? '#ffaa00' : '#ff1e56';
+              const isHovered = hoveredEvent === e.label;
+              const isPassed = e.t <= scrub;
+              const isActive = i === activeIdx;
+              return (
+                <div
+                  key={e.label}
+                  className="absolute flex -translate-x-1/2 flex-col items-center"
+                  style={{ left: `${e.t * 100}%`, opacity: isPassed ? 1 : 0.35 }}
+                  onMouseEnter={() => setHoveredEvent(e.label)}
+                  onMouseLeave={() => setHoveredEvent(null)}
+                >
+                  <span
+                    className="cursor-pointer rounded-full transition-all"
+                    style={{
+                      width: isActive ? 10 : 8,
+                      height: isActive ? 10 : 8,
+                      background: dotColor,
+                      boxShadow: isActive
+                        ? `0 0 0 3px ${dotColor}33, 0 0 10px ${dotColor}`
+                        : `0 0 6px ${dotColor}99`,
+                    }}
+                  />
+                  <span
+                    className="hud-mono mt-2 hidden origin-top-left whitespace-nowrap text-[8px] text-slate-500 lg:block"
+                    style={{ transform: 'rotate(35deg)' }}
+                  >
+                    {e.label}
+                  </span>
+                  {isHovered && (
+                    <div
+                      className="glass hud-mono absolute top-6 z-20 whitespace-nowrap rounded-md border border-edge px-2 py-1 text-[10px] shadow-lg"
+                      style={{ color: dotColor }}
+                    >
+                      {e.label}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
-        <div className="mt-4 max-h-24 overflow-y-auto">
-          {currentEvents.slice(-6).map((e, i) => (
+        <div className="mt-4 max-h-20 overflow-y-auto">
+          {currentEvents.slice(-4).map((e, i) => (
             <motion.div
               key={`${e.label}-${i}`}
               initial={{ opacity: 0, x: -8 }}
@@ -208,8 +291,8 @@ export default function Replay() {
                   color: e.tone === 'mint' ? '#00ffaa' : e.tone === 'amber' ? '#ffaa00' : '#ff1e56',
                 }}
               >
-                T+{String(Math.floor(e.t * 24)).padStart(2, '0')}:{String(
-                  Math.floor((e.t * 24 * 60) % 60),
+                T+{String(Math.floor(e.t * windowHours)).padStart(2, '0')}:{String(
+                  Math.floor((e.t * windowHours * 60) % 60),
                 ).padStart(2, '0')}
               </span>
               <span className="text-[11px] text-slate-300">{e.label}</span>
