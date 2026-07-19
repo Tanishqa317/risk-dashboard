@@ -115,5 +115,416 @@
         "override_reason": null
       }
     }
+  },
+  "unit-3": {
+    "risk_assessment": {
+      "unit_id": "unit-3",
+      "risk_score": 45,
+      "risk_level": "medium",
+      "primary_concern": "Sudden tool wear telemetry drop",
+      "reasoning": "The tool wear reading dropped abruptly from 202.0 to 12.0 without any corresponding operational downtime, indicating a potential sensor malfunction or unlogged maintenance. Other parameters like torque and temperature remain stable, suggesting no immediate mechanical failure, but sensor reliability should be verified.",
+      "error": null,
+      "cached": true,
+      "cache_age_seconds": 31
+    },
+    "guardrail_check": {
+      "unit_id": "unit-3",
+      "plant_state": {
+        "zones": [
+          {
+            "zone_id": "unit-3-zone-1",
+            "gas_ppm": 250.0,
+            "active_permits": [],
+            "supervisors_present": 2
+          },
+          {
+            "zone_id": "unit-3-zone-2",
+            "gas_ppm": 250.0,
+            "active_permits": [],
+            "supervisors_present": 2
+          },
+          {
+            "zone_id": "unit-3-zone-3",
+            "gas_ppm": 250.0,
+            "active_permits": [],
+            "supervisors_present": 2
+          }
+        ]
+      },
+      "engine_output": {
+        "risk_score": 45,
+        "flagged_zone": "",
+        "reasoning": "The tool wear reading dropped abruptly from 202.0 to 12.0 without any corresponding operational downtime, indicating a potential sensor malfunction or unlogged maintenance. Other parameters like torque and temperature remain stable, suggesting no immediate mechanical failure, but sensor reliability should be verified.",
+        "contributing_factors": []
+      },
+      "guardrail_result": {
+        "risk_score": 45,
+        "flagged_zone": "",
+        "reasoning": "The tool wear reading dropped abruptly from 202.0 to 12.0 without any corresponding operational downtime, indicating a potential sensor malfunction or unlogged maintenance. Other parameters like torque and temperature remain stable, suggesting no immediate mechanical failure, but sensor reliability should be verified.",
+        "contributing_factors": [],
+        "overridden": false,
+        "override_reason": null
+      }
+    },
+    "compliance_audit": {
+      "unit_id": "unit-3",
+      "compliance_status": "minor_deviation",
+      "deviations_found": [
+        "Permit registry for unit-3 includes 'revoked' and 'expired' statuses under active permits."
+      ],
+      "corrective_actions": [
+        "Review and reconcile the permit database to ensure expired and revoked permits are decommissioned.",
+        "Verify that active operations are only conducted under valid, active permits."
+      ],
+      "regulatory_references": [
+        "Standard Operational Permit Guidelines"
+      ],
+      "current_state_summary": "\nUnit ID: unit-3\nActive Permits: 1974 permits\n  - Types: general\n  - Statuses: revoked, active, expired\nShift Staffing: normal\nGuardrail Violations: 0 found\n  - None\nRecent Alarms (Last Hour): 3\n",
+      "fallback_used": false
+    },
+    "oracle_swarm": {
+      "unit_id": "unit-3",
+      "countdown_seconds": 11736,
+      "consensus": {
+        "final_verdict": "low",
+        "consensus": false,
+        "agent_results": [
+          {
+            "agent": "Aggressive",
+            "risk_score": 98,
+            "flagged_zone": "unit-3-zone-1",
+            "reasoning": "A highly dangerous gas level of 250.0 PPM is detected globally across all zones, indicating a systemic and uncontrolled catastrophic leak. Furthermore, the presence of supervisors in these hazardous areas without active work permits indicates unauthorized entry and a severe breach of safety protocols, representing an imminent threat of mass exposure or explosion."
+          },
+          {
+            "agent": "Conservative",
+            "risk_score": 30,
+            "flagged_zone": "none",
+            "reasoning": "All zones report identical readings of 250.0 ppm gas with two supervisors present and no active permits. Lacking explicit evidence of a highly toxic substance or active hazard, conditions are assumed to be within normal operating parameters under supervision."
+          },
+          {
+            "agent": "Adversarial",
+            "risk_score": 9,
+            "flagged_zone": "unit-3 (all zones)",
+            "reasoning": "A uniform gas reading of 250.0 ppm across all three adjacent zones strongly indicates either a widespread catastrophic atmospheric release or a systemic sensor calibration failure masking potentially lethal concentrations. Furthermore, the presence of two supervisors in every zone (six total) despite zero active work permits suggests an unlogged, unauthorized emergency entry or personnel trapped in a highly toxic environment without active safety protocols or rescue permits."
+          }
+        ]
+      },
+      "agents": [
+        {
+          "id": "Aggressive",
+          "name": "Aggressive Oracle",
+          "lines": [
+            "> stance: AGGRESSIVE ORACLE",
+            "> plant zones analyzed: 3",
+            "> flagged zone: unit-3-zone-1",
+            "> reasoning: A highly dangerous gas level of 250.0 PPM is detected globally across all zones, indicating a systemic and uncontrolled catastrophic leak. Furthermore, the presence of supervisors in these hazardous areas without active work permits indicates unauthorized entry and a severe breach of safety protocols, representing an imminent threat of mass exposure or explosion.",
+            "> verdict: HIGH RISK (risk 98/100)"
+          ],
+          "confidence": 0.98,
+          "verdict": "HIGH RISK"
+        },
+        {
+          "id": "Conservative",
+          "name": "Conservative Oracle",
+          "lines": [
+            "> stance: CONSERVATIVE ORACLE",
+            "> plant zones analyzed: 3",
+            "> flagged zone: none",
+            "> reasoning: All zones report identical readings of 250.0 ppm gas with two supervisors present and no active permits. Lacking explicit evidence of a highly toxic substance or active hazard, conditions are assumed to be within normal operating parameters under supervision.",
+            "> verdict: LOW RISK (risk 30/100)"
+          ],
+          "confidence": 0.3,
+          "verdict": "LOW RISK"
+        },
+        {
+          "id": "Adversarial",
+          "name": "Adversarial Oracle",
+          "lines": [
+            "> stance: ADVERSARIAL ORACLE",
+            "> plant zones analyzed: 3",
+            "> flagged zone: unit-3 (all zones)",
+            "> reasoning: A uniform gas reading of 250.0 ppm across all three adjacent zones strongly indicates either a widespread catastrophic atmospheric release or a systemic sensor calibration failure masking potentially lethal concentrations. Furthermore, the presence of two supervisors in every zone (six total) despite zero active work permits suggests an unlogged, unauthorized emergency entry or personnel trapped in a highly toxic environment without active safety protocols or rescue permits.",
+            "> verdict: LOW RISK (risk 9/100)"
+          ],
+          "confidence": 0.09,
+          "verdict": "LOW RISK"
+        }
+      ]
+    }
+  },
+  "unit-4": {
+    "risk_assessment": {
+      "unit_id": "unit-4",
+      "risk_score": 45,
+      "risk_level": "medium",
+      "primary_concern": "Administrative permit backlog",
+      "reasoning": "Physical parameters have stabilized following a recent tool replacement, with tool wear dropping from 210 to 8. However, the excessive volume of active permits (8,055) and expired, unclosed permits (2,200) poses a significant administrative oversight risk for normal staffing levels. There is a potential safety gap if physical lockouts or work scopes are not being properly tracked and closed.",
+      "error": null,
+      "cached": false,
+      "cache_age_seconds": 0,
+      "fallback_used": false
+    },
+    "guardrail_check": {
+      "unit_id": "unit-4",
+      "plant_state": {
+        "zones": [
+          {
+            "zone_id": "unit-4-zone-1",
+            "gas_ppm": 250.0,
+            "active_permits": [],
+            "supervisors_present": 2
+          },
+          {
+            "zone_id": "unit-4-zone-2",
+            "gas_ppm": 250.0,
+            "active_permits": [],
+            "supervisors_present": 2
+          },
+          {
+            "zone_id": "unit-4-zone-3",
+            "gas_ppm": 250.0,
+            "active_permits": [],
+            "supervisors_present": 2
+          }
+        ]
+      },
+      "engine_output": {
+        "risk_score": 45,
+        "flagged_zone": "",
+        "reasoning": "Physical parameters have stabilized following a recent tool replacement, with tool wear dropping from 210 to 8. However, the excessive volume of active permits (8,055) and expired, unclosed permits (2,200) poses a significant administrative oversight risk for normal staffing levels. There is a potential safety gap if physical lockouts or work scopes are not being properly tracked and closed.",
+        "contributing_factors": []
+      },
+      "guardrail_result": {
+        "risk_score": 45,
+        "flagged_zone": "",
+        "reasoning": "Physical parameters have stabilized following a recent tool replacement, with tool wear dropping from 210 to 8. However, the excessive volume of active permits (8,055) and expired, unclosed permits (2,200) poses a significant administrative oversight risk for normal staffing levels. There is a potential safety gap if physical lockouts or work scopes are not being properly tracked and closed.",
+        "contributing_factors": [],
+        "overridden": false,
+        "override_reason": null
+      }
+    },
+    "compliance_audit": {
+      "unit_id": "unit-4",
+      "compliance_status": "minor_deviation",
+      "deviations_found": [
+        "The permit registry contains permits marked as 'expired' and 'revoked' within the active permit count."
+      ],
+      "corrective_actions": [
+        "Audit the permit database to segregate and archive all expired and revoked permits.",
+        "Implement a system control to prevent the utilization of expired or revoked permits in active operations."
+      ],
+      "regulatory_references": [
+        "Standard Permit Administration and Control Guidelines"
+      ],
+      "current_state_summary": "\nUnit ID: unit-4\nActive Permits: 2093 permits\n  - Types: general\n  - Statuses: expired, active, revoked\nShift Staffing: normal\nGuardrail Violations: 0 found\n  - None\nRecent Alarms (Last Hour): 3\n",
+      "fallback_used": false
+    },
+    "oracle_swarm": {
+      "unit_id": "unit-4",
+      "countdown_seconds": 12096,
+      "consensus": {
+        "final_verdict": "low",
+        "consensus": false,
+        "agent_results": [
+          {
+            "agent": "Aggressive",
+            "risk_score": 98,
+            "flagged_zone": "unit-4-zone-1",
+            "reasoning": "Critically elevated gas levels of 250.0 ppm detected simultaneously across all Unit 4 zones indicate a catastrophic systemic containment breach or a widespread ventilation failure. The presence of supervisors in these zones despite zero active work permits suggests a highly dangerous, undocumented crisis intervention where personnel are actively bypassing safety protocols to mitigate an emergency in a lethal atmosphere."
+          },
+          {
+            "agent": "Conservative",
+            "risk_score": 25,
+            "flagged_zone": "none",
+            "reasoning": "All zones report identical gas levels of 250.0 ppm with supervisors present and no active permits. Lacking explicit identification of a toxic gas or other danger signs, the plant is assumed to be operating under normal, controlled monitoring conditions."
+          },
+          {
+            "agent": "Adversarial",
+            "risk_score": 9,
+            "flagged_zone": "unit-4 (all zones)",
+            "reasoning": "A uniform reading of 250.0 ppm across three distinct zones indicates a catastrophic, widespread containment failure or a system-wide sensor saturation masking much higher, potentially lethal gas concentrations. Furthermore, having two supervisors present in each zone with zero active work permits strongly suggests an unlogged, desperate emergency response or that personnel are already incapacitated/trapped in highly toxic environments without safety clearance."
+          }
+        ]
+      },
+      "agents": [
+        {
+          "id": "Aggressive",
+          "name": "Aggressive Oracle",
+          "lines": [
+            "> stance: AGGRESSIVE ORACLE",
+            "> plant zones analyzed: 3",
+            "> flagged zone: unit-4-zone-1",
+            "> reasoning: Critically elevated gas levels of 250.0 ppm detected simultaneously across all Unit 4 zones indicate a catastrophic systemic containment breach or a widespread ventilation failure. The presence of supervisors in these zones despite zero active work permits suggests a highly dangerous, undocumented crisis intervention where personnel are actively bypassing safety protocols to mitigate an emergency in a lethal atmosphere.",
+            "> verdict: HIGH RISK (risk 98/100)"
+          ],
+          "confidence": 0.98,
+          "verdict": "HIGH RISK"
+        },
+        {
+          "id": "Conservative",
+          "name": "Conservative Oracle",
+          "lines": [
+            "> stance: CONSERVATIVE ORACLE",
+            "> plant zones analyzed: 3",
+            "> flagged zone: none",
+            "> reasoning: All zones report identical gas levels of 250.0 ppm with supervisors present and no active permits. Lacking explicit identification of a toxic gas or other danger signs, the plant is assumed to be operating under normal, controlled monitoring conditions.",
+            "> verdict: LOW RISK (risk 25/100)"
+          ],
+          "confidence": 0.25,
+          "verdict": "LOW RISK"
+        },
+        {
+          "id": "Adversarial",
+          "name": "Adversarial Oracle",
+          "lines": [
+            "> stance: ADVERSARIAL ORACLE",
+            "> plant zones analyzed: 3",
+            "> flagged zone: unit-4 (all zones)",
+            "> reasoning: A uniform reading of 250.0 ppm across three distinct zones indicates a catastrophic, widespread containment failure or a system-wide sensor saturation masking much higher, potentially lethal gas concentrations. Furthermore, having two supervisors present in each zone with zero active work permits strongly suggests an unlogged, desperate emergency response or that personnel are already incapacitated/trapped in highly toxic environments without safety clearance.",
+            "> verdict: LOW RISK (risk 9/100)"
+          ],
+          "confidence": 0.09,
+          "verdict": "LOW RISK"
+        }
+      ]
+    }
+  },
+  "unit-5": {
+    "risk_assessment": {
+      "unit_id": "unit-5",
+      "risk_score": 88,
+      "risk_level": "high",
+      "primary_concern": "Imminent tool wear failure and severe permit backlog",
+      "reasoning": "Tool wear has accelerated rapidly from 124 to 188 in under an hour, indicating imminent mechanical failure. Additionally, the extraordinary volume of active and expired permits suggests a critical breakdown in safety administration and oversight that normal staffing cannot adequately manage.",
+      "error": null,
+      "cached": false,
+      "cache_age_seconds": 0,
+      "fallback_used": false
+    },
+    "guardrail_check": {
+      "unit_id": "unit-5",
+      "plant_state": {
+        "zones": [
+          {
+            "zone_id": "unit-5-zone-1",
+            "gas_ppm": 250.0,
+            "active_permits": [],
+            "supervisors_present": 2
+          },
+          {
+            "zone_id": "unit-5-zone-2",
+            "gas_ppm": 250.0,
+            "active_permits": [],
+            "supervisors_present": 2
+          },
+          {
+            "zone_id": "unit-5-zone-3",
+            "gas_ppm": 250.0,
+            "active_permits": [],
+            "supervisors_present": 2
+          }
+        ]
+      },
+      "engine_output": {
+        "risk_score": 88,
+        "flagged_zone": "",
+        "reasoning": "Tool wear has accelerated rapidly from 124 to 188 in under an hour, indicating imminent mechanical failure. Additionally, the extraordinary volume of active and expired permits suggests a critical breakdown in safety administration and oversight that normal staffing cannot adequately manage.",
+        "contributing_factors": []
+      },
+      "guardrail_result": {
+        "risk_score": 88,
+        "flagged_zone": "",
+        "reasoning": "Tool wear has accelerated rapidly from 124 to 188 in under an hour, indicating imminent mechanical failure. Additionally, the extraordinary volume of active and expired permits suggests a critical breakdown in safety administration and oversight that normal staffing cannot adequately manage.",
+        "contributing_factors": [],
+        "overridden": false,
+        "override_reason": null
+      }
+    },
+    "compliance_audit": {
+      "unit_id": "unit-5",
+      "compliance_status": "minor_deviation",
+      "deviations_found": [
+        "Permits listed under active permit registry include expired and revoked statuses."
+      ],
+      "corrective_actions": [
+        "Audit the permit tracking system to isolate and archive expired and revoked permits.",
+        "Verify that no operations requiring active permits are currently being conducted under the expired or revoked permits.",
+        "Initiate renewal procedures for necessary expired permits."
+      ],
+      "regulatory_references": [
+        "Standard Permit Administration and Compliance Guidelines"
+      ],
+      "current_state_summary": "\nUnit ID: unit-5\nActive Permits: 1971 permits\n  - Types: general\n  - Statuses: expired, active, revoked\nShift Staffing: normal\nGuardrail Violations: 0 found\n  - None\nRecent Alarms (Last Hour): 3\n",
+      "fallback_used": false
+    },
+    "oracle_swarm": {
+      "unit_id": "unit-5",
+      "countdown_seconds": 11375,
+      "consensus": {
+        "final_verdict": "low",
+        "consensus": false,
+        "agent_results": [
+          {
+            "agent": "Aggressive",
+            "risk_score": 98,
+            "flagged_zone": "unit-5-zone-1",
+            "reasoning": "Critically high gas concentrations of 250.0 ppm across all Unit 5 zones with zero active permits indicates a massive, unmanaged toxic or explosive gas leak. The presence of supervisors without logged permits suggests they are either responding to an unmitigated disaster or are currently incapacitated. Worst-case catastrophic failure is assumed."
+          },
+          {
+            "agent": "Conservative",
+            "risk_score": 35,
+            "flagged_zone": "none",
+            "reasoning": "All zones show a uniform gas level of 250.0 ppm with adequate supervisor presence and no active permits. Assuming normal operations under conservative parameters, there is no strong explicit evidence of immediate danger, though routine monitoring should continue."
+          },
+          {
+            "agent": "Adversarial",
+            "risk_score": 9,
+            "flagged_zone": "unit-5 (all zones)",
+            "reasoning": "A highly critical, systemic hazard is indicated by identical 250.0 ppm gas readings across all three zones, suggesting either a massive, homogenized toxic gas release (exceeding lethal thresholds for gases like H2S) or a total sensor grid malfunction. Alarmingly, there are 2 supervisors present in each zone despite zero active work permits. This unauthorized presence during a severe gas event strongly points to an unrecorded emergency, an uncoordinated rescue attempt, or that personnel are already incapacitated inside the toxic environment."
+          }
+        ]
+      },
+      "agents": [
+        {
+          "id": "Aggressive",
+          "name": "Aggressive Oracle",
+          "lines": [
+            "> stance: AGGRESSIVE ORACLE",
+            "> plant zones analyzed: 3",
+            "> flagged zone: unit-5-zone-1",
+            "> reasoning: Critically high gas concentrations of 250.0 ppm across all Unit 5 zones with zero active permits indicates a massive, unmanaged toxic or explosive gas leak. The presence of supervisors without logged permits suggests they are either responding to an unmitigated disaster or are currently incapacitated. Worst-case catastrophic failure is assumed.",
+            "> verdict: HIGH RISK (risk 98/100)"
+          ],
+          "confidence": 0.98,
+          "verdict": "HIGH RISK"
+        },
+        {
+          "id": "Conservative",
+          "name": "Conservative Oracle",
+          "lines": [
+            "> stance: CONSERVATIVE ORACLE",
+            "> plant zones analyzed: 3",
+            "> flagged zone: none",
+            "> reasoning: All zones show a uniform gas level of 250.0 ppm with adequate supervisor presence and no active permits. Assuming normal operations under conservative parameters, there is no strong explicit evidence of immediate danger, though routine monitoring should continue.",
+            "> verdict: LOW RISK (risk 35/100)"
+          ],
+          "confidence": 0.35,
+          "verdict": "LOW RISK"
+        },
+        {
+          "id": "Adversarial",
+          "name": "Adversarial Oracle",
+          "lines": [
+            "> stance: ADVERSARIAL ORACLE",
+            "> plant zones analyzed: 3",
+            "> flagged zone: unit-5 (all zones)",
+            "> reasoning: A highly critical, systemic hazard is indicated by identical 250.0 ppm gas readings across all three zones, suggesting either a massive, homogenized toxic gas release (exceeding lethal thresholds for gases like H2S) or a total sensor grid malfunction. Alarmingly, there are 2 supervisors present in each zone despite zero active work permits. This unauthorized presence during a severe gas event strongly points to an unrecorded emergency, an uncoordinated rescue attempt, or that personnel are already incapacitated inside the toxic environment.",
+            "> verdict: LOW RISK (risk 9/100)"
+          ],
+          "confidence": 0.09,
+          "verdict": "LOW RISK"
+        }
+      ]
+    }
   }
 }

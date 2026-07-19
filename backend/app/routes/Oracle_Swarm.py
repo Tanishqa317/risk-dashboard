@@ -2,6 +2,7 @@ import importlib
 import json
 import os
 from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
 from typing import Any, Dict, List, TypedDict
 
 import httpx
@@ -21,18 +22,53 @@ except ImportError:  # pragma: no cover
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
+FALLBACK_FILE = Path(__file__).resolve().parents[2] / "data" / "fallback_responses.json"
+
+
+def _load_fallback_oracle_swarm(unit_id: str):
+    """Return a previously-captured real oracle-swarm response for this unit, if any."""
+    if not FALLBACK_FILE.exists():
+        return None
+    try:
+        with FALLBACK_FILE.open("r", encoding="utf-8") as fh:
+            fallbacks = json.load(fh)
+        return fallbacks.get(unit_id, {}).get("oracle_swarm")
+    except Exception:
+        return None
+
+
+def _agent_failed(agent: Dict[str, Any]) -> bool:
+    text = str(agent.get("lines", [])).lower()
+    return "unavailable" in text or "failed" in text
+
+
 AGENT_INSTRUCTIONS: Dict[str, str] = {
     "Aggressive": (
         "You are the Aggressive Oracle agent. Assume the worst-case interpretation of any "
-        "ambiguous signal and err on the side of danger when evaluating a plant state."
+        "ambiguous signal and err on the side of danger when evaluating a plant state. "
+        "Your risk_score MUST directly reflect the severity of your own reasoning: if your "
+        "reasoning describes a catastrophic, lethal, or emergency scenario, risk_score must be "
+        "80-100. If it describes a serious but non-immediate concern, risk_score must be 50-79. "
+        "Only use a score below 50 if your reasoning genuinely supports a low-danger conclusion. "
+        "Never describe a catastrophic scenario and then assign a low risk_score — the number and "
+        "the reasoning must agree."
     ),
     "Conservative": (
         "You are the Conservative Oracle agent. Assume normal operations unless there is strong, "
-        "explicit evidence of danger."
+        "explicit evidence of danger. Your risk_score MUST directly reflect the severity of your "
+        "own reasoning: if you conclude operations are normal, risk_score must be 0-30. If you find "
+        "explicit evidence of a real problem, raise the score to match its severity (50+). Never "
+        "describe a dangerous finding and then assign a low risk_score — the number and the "
+        "reasoning must agree."
     ),
     "Adversarial": (
         "You are the Adversarial Oracle agent. Specifically look for what the other agents might "
-        "miss and argue for the more dangerous interpretation whenever there is any doubt."
+        "miss and argue for the more dangerous interpretation whenever there is any doubt. Your "
+        "risk_score MUST directly reflect the severity of your own reasoning: if your reasoning "
+        "describes a catastrophic, lethal, or emergency scenario, risk_score must be 80-100. If it "
+        "describes a serious but non-immediate concern, risk_score must be 50-79. Never describe a "
+        "catastrophic scenario and then assign a low risk_score — the number and the reasoning must "
+        "agree."
     ),
 }
 
@@ -140,7 +176,9 @@ def resolveConsensus(swarmResults: List[Dict[str, Any]]) -> Dict[str, Any]:
 
 # ---------------------------------------------------------------------------
 # FastAPI route — aggregates real plant_state (from guardrail-check) through
-# the oracle swarm above, and reshapes it for the frontend.
+# the oracle swarm above, and reshapes it for the frontend. Falls back to a
+# previously-captured real response if any agent failed (quota/access/model
+# errors) and a fallback exists for this unit.
 # ---------------------------------------------------------------------------
 
 router = APIRouter()
@@ -188,6 +226,15 @@ async def get_oracle_swarm(unit_id: str):
             }
         )
 
+    # If any agent failed (quota/model/access errors), prefer a real captured
+    # fallback response over showing degraded/error-state agents.
+    if any(_agent_failed(a) for a in agents):
+        fallback = _load_fallback_oracle_swarm(unit_id)
+        if fallback is not None:
+            fallback = dict(fallback)
+            fallback["fallback_used"] = True
+            return fallback
+
     avg_risk = sum(r.get("risk_score", 0) for r in swarm_results) / max(1, len(swarm_results))
     max_window_seconds = 6 * 3600  # tune if a different ceiling fits the demo better
     countdown_seconds = int(max_window_seconds * (1 - avg_risk / 100))
@@ -197,6 +244,7 @@ async def get_oracle_swarm(unit_id: str):
         "countdown_seconds": countdown_seconds,
         "consensus": consensus,  # {final_verdict, consensus: bool, agent_results: [...]}
         "agents": agents,
+        "fallback_used": False,
     }
 
 
