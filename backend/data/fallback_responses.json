@@ -14,24 +14,9 @@
       "unit_id": "unit-1",
       "plant_state": {
         "zones": [
-          {
-            "zone_id": "unit-1-zone-1",
-            "gas_ppm": 250.0,
-            "active_permits": [],
-            "supervisors_present": 2
-          },
-          {
-            "zone_id": "unit-1-zone-2",
-            "gas_ppm": 250.0,
-            "active_permits": [],
-            "supervisors_present": 2
-          },
-          {
-            "zone_id": "unit-1-zone-3",
-            "gas_ppm": 250.0,
-            "active_permits": [],
-            "supervisors_present": 2
-          }
+          { "zone_id": "unit-1-zone-1", "gas_ppm": 250.0, "active_permits": [], "supervisors_present": 2 },
+          { "zone_id": "unit-1-zone-2", "gas_ppm": 250.0, "active_permits": [], "supervisors_present": 2 },
+          { "zone_id": "unit-1-zone-3", "gas_ppm": 250.0, "active_permits": [], "supervisors_present": 2 }
         ]
       },
       "engine_output": {
@@ -52,17 +37,92 @@
     "compliance_audit": {
       "unit_id": "unit-1",
       "compliance_status": "minor_deviation",
-      "deviations_found": [
-        "Permit registry includes permits with 'expired' and 'revoked' statuses within active operational tracking."
-      ],
-      "corrective_actions": [
-        "Perform an immediate audit of all 1,973 permits to isolate and archive expired and revoked entries.",
-        "Verify that no operations are currently being conducted under the authority of any expired or revoked permits."
-      ],
-      "regulatory_references": [
-        "Standard Permit Administration and Tracking Guidelines"
+      "anomalies": [
+        {
+          "deviation": "Permit registry includes permits with 'expired' and 'revoked' statuses within active operational tracking.",
+          "corrective_action": "1) Perform an immediate audit of all 1,973 permits to isolate and archive expired and revoked entries. 2) Verify that no operations are currently being conducted under the authority of any expired or revoked permits.",
+          "regulatory_reference": "Standard Permit Administration and Tracking Guidelines"
+        }
       ],
       "current_state_summary": "\nUnit ID: unit-1\nActive Permits: 1973 permits\n  - Types: general\n  - Statuses: active, expired, revoked\nShift Staffing: normal\nGuardrail Violations: 0 found\n  - None\nRecent Alarms (Last Hour): 3\n"
+    },
+    "oracle_swarm": {
+      "unit_id": "unit-1",
+      "countdown_seconds": 6840,
+      "consensus": {
+        "final_verdict": "high",
+        "consensus": true,
+        "partial_data": false,
+        "agent_results": [
+          {
+            "agent": "Aggressive",
+            "risk_score": 95,
+            "flagged_zone": "unit-1-zone-1",
+            "reasoning": "The simultaneous reading of 250.0 ppm gas across all zones indicates a catastrophic and systemic gas leak across the entire unit, presenting an immediate, lethal poisoning and explosion hazard with zero active permits authorized for these environments.",
+            "failed": false
+          },
+          {
+            "agent": "Conservative",
+            "risk_score": 15,
+            "flagged_zone": "none",
+            "reasoning": "All zones report identical gas levels of 250 ppm and have adequate supervisor presence, suggesting stable and normal operating conditions across the unit.",
+            "failed": false
+          },
+          {
+            "agent": "Adversarial",
+            "risk_score": 95,
+            "flagged_zone": "unit-1",
+            "reasoning": "The uniform concentration of 250 ppm toxic gas across all three zones indicates a severe, widespread systemic leak, and the presence of supervisors without active work permits suggests an illegal or desperate emergency entry into a highly lethal atmosphere.",
+            "failed": false
+          }
+        ]
+      },
+      "agents": [
+        {
+          "id": "Aggressive",
+          "name": "Aggressive Oracle",
+          "lines": [
+            "> stance: AGGRESSIVE ORACLE",
+            "> plant zones analyzed: 3",
+            "> flagged zone: unit-1-zone-1",
+            "> reasoning: The simultaneous reading of 250.0 ppm gas across all zones indicates a catastrophic and systemic gas leak across the entire unit, presenting an immediate, lethal poisoning and explosion hazard with zero active permits authorized for these environments.",
+            "> verdict: HIGH RISK (risk 95/100)"
+          ],
+          "confidence": 0.95,
+          "verdict": "HIGH RISK",
+          "failed": false
+        },
+        {
+          "id": "Conservative",
+          "name": "Conservative Oracle",
+          "lines": [
+            "> stance: CONSERVATIVE ORACLE",
+            "> plant zones analyzed: 3",
+            "> flagged zone: none",
+            "> reasoning: All zones report identical gas levels of 250 ppm and have adequate supervisor presence, suggesting stable and normal operating conditions across the unit.",
+            "> verdict: LOW RISK (risk 15/100)"
+          ],
+          "confidence": 0.15,
+          "verdict": "LOW RISK",
+          "failed": false
+        },
+        {
+          "id": "Adversarial",
+          "name": "Adversarial Oracle",
+          "lines": [
+            "> stance: ADVERSARIAL ORACLE",
+            "> plant zones analyzed: 3",
+            "> flagged zone: unit-1",
+            "> reasoning: The uniform concentration of 250 ppm toxic gas across all three zones indicates a severe, widespread systemic leak, and the presence of supervisors without active work permits suggests an illegal or desperate emergency entry into a highly lethal atmosphere.",
+            "> verdict: HIGH RISK (risk 95/100)"
+          ],
+          "confidence": 0.95,
+          "verdict": "HIGH RISK",
+          "failed": false
+        }
+      ],
+      "fallback_used": false,
+      "any_agent_failed": false
     }
   },
   "unit-2": {
@@ -80,24 +140,9 @@
       "unit_id": "unit-2",
       "plant_state": {
         "zones": [
-          {
-            "zone_id": "unit-2-zone-1",
-            "gas_ppm": 250.0,
-            "active_permits": [],
-            "supervisors_present": 2
-          },
-          {
-            "zone_id": "unit-2-zone-2",
-            "gas_ppm": 250.0,
-            "active_permits": [],
-            "supervisors_present": 2
-          },
-          {
-            "zone_id": "unit-2-zone-3",
-            "gas_ppm": 250.0,
-            "active_permits": [],
-            "supervisors_present": 2
-          }
+          { "zone_id": "unit-2-zone-1", "gas_ppm": 250.0, "active_permits": [], "supervisors_present": 2 },
+          { "zone_id": "unit-2-zone-2", "gas_ppm": 250.0, "active_permits": [], "supervisors_present": 2 },
+          { "zone_id": "unit-2-zone-3", "gas_ppm": 250.0, "active_permits": [], "supervisors_present": 2 }
         ]
       },
       "engine_output": {
@@ -131,24 +176,9 @@
       "unit_id": "unit-3",
       "plant_state": {
         "zones": [
-          {
-            "zone_id": "unit-3-zone-1",
-            "gas_ppm": 250.0,
-            "active_permits": [],
-            "supervisors_present": 2
-          },
-          {
-            "zone_id": "unit-3-zone-2",
-            "gas_ppm": 250.0,
-            "active_permits": [],
-            "supervisors_present": 2
-          },
-          {
-            "zone_id": "unit-3-zone-3",
-            "gas_ppm": 250.0,
-            "active_permits": [],
-            "supervisors_present": 2
-          }
+          { "zone_id": "unit-3-zone-1", "gas_ppm": 250.0, "active_permits": [], "supervisors_present": 2 },
+          { "zone_id": "unit-3-zone-2", "gas_ppm": 250.0, "active_permits": [], "supervisors_present": 2 },
+          { "zone_id": "unit-3-zone-3", "gas_ppm": 250.0, "active_permits": [], "supervisors_present": 2 }
         ]
       },
       "engine_output": {
@@ -169,15 +199,12 @@
     "compliance_audit": {
       "unit_id": "unit-3",
       "compliance_status": "minor_deviation",
-      "deviations_found": [
-        "Permit registry for unit-3 includes 'revoked' and 'expired' statuses under active permits."
-      ],
-      "corrective_actions": [
-        "Review and reconcile the permit database to ensure expired and revoked permits are decommissioned.",
-        "Verify that active operations are only conducted under valid, active permits."
-      ],
-      "regulatory_references": [
-        "Standard Operational Permit Guidelines"
+      "anomalies": [
+        {
+          "deviation": "Permit registry for unit-3 includes 'revoked' and 'expired' statuses under active permits.",
+          "corrective_action": "1) Review and reconcile the permit database to ensure expired and revoked permits are decommissioned. 2) Verify that active operations are only conducted under valid, active permits.",
+          "regulatory_reference": "Standard Operational Permit Guidelines"
+        }
       ],
       "current_state_summary": "\nUnit ID: unit-3\nActive Permits: 1974 permits\n  - Types: general\n  - Statuses: revoked, active, expired\nShift Staffing: normal\nGuardrail Violations: 0 found\n  - None\nRecent Alarms (Last Hour): 3\n",
       "fallback_used": false
@@ -268,24 +295,9 @@
       "unit_id": "unit-4",
       "plant_state": {
         "zones": [
-          {
-            "zone_id": "unit-4-zone-1",
-            "gas_ppm": 250.0,
-            "active_permits": [],
-            "supervisors_present": 2
-          },
-          {
-            "zone_id": "unit-4-zone-2",
-            "gas_ppm": 250.0,
-            "active_permits": [],
-            "supervisors_present": 2
-          },
-          {
-            "zone_id": "unit-4-zone-3",
-            "gas_ppm": 250.0,
-            "active_permits": [],
-            "supervisors_present": 2
-          }
+          { "zone_id": "unit-4-zone-1", "gas_ppm": 250.0, "active_permits": [], "supervisors_present": 2 },
+          { "zone_id": "unit-4-zone-2", "gas_ppm": 250.0, "active_permits": [], "supervisors_present": 2 },
+          { "zone_id": "unit-4-zone-3", "gas_ppm": 250.0, "active_permits": [], "supervisors_present": 2 }
         ]
       },
       "engine_output": {
@@ -306,15 +318,12 @@
     "compliance_audit": {
       "unit_id": "unit-4",
       "compliance_status": "minor_deviation",
-      "deviations_found": [
-        "The permit registry contains permits marked as 'expired' and 'revoked' within the active permit count."
-      ],
-      "corrective_actions": [
-        "Audit the permit database to segregate and archive all expired and revoked permits.",
-        "Implement a system control to prevent the utilization of expired or revoked permits in active operations."
-      ],
-      "regulatory_references": [
-        "Standard Permit Administration and Control Guidelines"
+      "anomalies": [
+        {
+          "deviation": "The permit registry contains permits marked as 'expired' and 'revoked' within the active permit count.",
+          "corrective_action": "1) Audit the permit database to segregate and archive all expired and revoked permits. 2) Implement a system control to prevent the utilization of expired or revoked permits in active operations.",
+          "regulatory_reference": "Standard Permit Administration and Control Guidelines"
+        }
       ],
       "current_state_summary": "\nUnit ID: unit-4\nActive Permits: 2093 permits\n  - Types: general\n  - Statuses: expired, active, revoked\nShift Staffing: normal\nGuardrail Violations: 0 found\n  - None\nRecent Alarms (Last Hour): 3\n",
       "fallback_used": false
@@ -405,24 +414,9 @@
       "unit_id": "unit-5",
       "plant_state": {
         "zones": [
-          {
-            "zone_id": "unit-5-zone-1",
-            "gas_ppm": 250.0,
-            "active_permits": [],
-            "supervisors_present": 2
-          },
-          {
-            "zone_id": "unit-5-zone-2",
-            "gas_ppm": 250.0,
-            "active_permits": [],
-            "supervisors_present": 2
-          },
-          {
-            "zone_id": "unit-5-zone-3",
-            "gas_ppm": 250.0,
-            "active_permits": [],
-            "supervisors_present": 2
-          }
+          { "zone_id": "unit-5-zone-1", "gas_ppm": 250.0, "active_permits": [], "supervisors_present": 2 },
+          { "zone_id": "unit-5-zone-2", "gas_ppm": 250.0, "active_permits": [], "supervisors_present": 2 },
+          { "zone_id": "unit-5-zone-3", "gas_ppm": 250.0, "active_permits": [], "supervisors_present": 2 }
         ]
       },
       "engine_output": {
@@ -443,16 +437,12 @@
     "compliance_audit": {
       "unit_id": "unit-5",
       "compliance_status": "minor_deviation",
-      "deviations_found": [
-        "Permits listed under active permit registry include expired and revoked statuses."
-      ],
-      "corrective_actions": [
-        "Audit the permit tracking system to isolate and archive expired and revoked permits.",
-        "Verify that no operations requiring active permits are currently being conducted under the expired or revoked permits.",
-        "Initiate renewal procedures for necessary expired permits."
-      ],
-      "regulatory_references": [
-        "Standard Permit Administration and Compliance Guidelines"
+      "anomalies": [
+        {
+          "deviation": "Permits listed under active permit registry include expired and revoked statuses.",
+          "corrective_action": "1) Audit the permit tracking system to isolate and archive expired and revoked permits. 2) Verify that no operations requiring active permits are currently being conducted under the expired or revoked permits. 3) Initiate renewal procedures for necessary expired permits.",
+          "regulatory_reference": "Standard Permit Administration and Compliance Guidelines"
+        }
       ],
       "current_state_summary": "\nUnit ID: unit-5\nActive Permits: 1971 permits\n  - Types: general\n  - Statuses: expired, active, revoked\nShift Staffing: normal\nGuardrail Violations: 0 found\n  - None\nRecent Alarms (Last Hour): 3\n",
       "fallback_used": false

@@ -1,4 +1,6 @@
-import { useMemo } from 'react';
+import io
+
+content = '''import { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import PageHeader from '../components/PageHeader';
 import { formatINR } from '../utils/currency';
@@ -48,9 +50,9 @@ export default function CoreVitals() {
   return (
     <div className="flex h-full flex-col p-6">
       <PageHeader
-        code="VIT·01 / CORE TELEMETRY"
+        code="VIT\u00b701 / CORE TELEMETRY"
         title="Core Vitals Dashboard"
-        subtitle="Correlation Engine + Cost-of-Risk Translator — live across five critical assets."
+        subtitle="Correlation Engine + Cost-of-Risk Translator \u2014 live across five critical assets."
         right={
           <div className="flex items-center gap-3">
             <button
@@ -59,7 +61,7 @@ export default function CoreVitals() {
               className="hud-mono flex items-center gap-2 rounded border border-edge px-3 py-2 text-[10px] tracking-wider text-mint transition hover:bg-white/5 disabled:opacity-40"
             >
               <RefreshCw size={12} className={anyLoading ? 'animate-spin' : ''} />
-              {anyLoading ? 'SYNCING…' : 'REFRESH'}
+              {anyLoading ? 'SYNCING\u2026' : 'REFRESH'}
             </button>
             <div className="glass rounded-md px-4 py-2">
               <div className="hud-label">TOTAL EXPOSURE</div>
@@ -86,15 +88,15 @@ export default function CoreVitals() {
 
         <div className="glass flex flex-col overflow-hidden rounded-lg">
           <div className="flex items-center justify-between border-b border-edge px-4 py-3">
-            <div className="hud-label">LIVE REASONING · GEMINI</div>
-            <span className="hud-mono text-[10px] text-mint glow-mint">● LIVE</span>
+            <div className="hud-label">LIVE REASONING \u00b7 GEMINI</div>
+            <span className="hud-mono text-[10px] text-mint glow-mint">\u25cf LIVE</span>
           </div>
           <div className="flex-1 overflow-y-auto px-3 py-3">
             {assets.map((a) => (
               <div key={a.id} className="mb-3 border-b border-edge pb-3 last:border-none">
                 <div className="hud-mono text-[10px] tracking-wider text-slate-500">{a.id.toUpperCase()}</div>
                 <div className="text-[11px] font-medium text-slate-200">
-                  {a.error ? `Error: ${a.error}` : a.primary_concern || (a.loading ? 'Loading…' : '—')}
+                  {a.error ? `Error: ${a.error}` : a.primary_concern || (a.loading ? 'Loading\u2026' : '\u2014')}
                 </div>
                 {a.reasoning && !a.error && (
                   <div className="mt-1 text-[10px] font-light text-slate-400">{a.reasoning}</div>
@@ -144,7 +146,7 @@ function AssetTile({ asset, index }: { asset: LiveAsset; index: number }) {
           <div>
             <div className="font-display text-[13px] font-medium text-white">{asset.name}</div>
             <div className="hud-mono text-[9px] tracking-wider text-slate-500">
-              {asset.id.toUpperCase()} · {asset.zone}
+              {asset.id.toUpperCase()} \u00b7 {asset.zone}
             </div>
           </div>
         </div>
@@ -204,13 +206,13 @@ function AssetTile({ asset, index }: { asset: LiveAsset; index: number }) {
 
       <div className="mt-1 grid grid-cols-2 gap-3 border-t border-edge pt-3">
         <Metric
-          label="RISK·LEVEL"
+          label="RISK\u00b7LEVEL"
           value={asset.risk_level.toUpperCase()}
           tone={state === 'critical' ? 'crimson' : state === 'warn' ? 'amber' : undefined}
         />
         <Metric
-          label="₹/hr EXPOSURE"
-          value={asset.estimated_cost_usd != null ? formatINR(asset.estimated_cost_usd) : '—'}
+          label="\u20b9/hr EXPOSURE"
+          value={asset.estimated_cost_usd != null ? formatINR(asset.estimated_cost_usd) : '\u2014'}
           tone={asset.estimated_cost_usd && asset.estimated_cost_usd > 100000 ? 'crimson' : undefined}
         />
       </div>
@@ -254,3 +256,9 @@ function RiskRing({ value, color }: { value: number; color: string }) {
     </svg>
   );
 }
+'''
+
+with io.open('CoreVitals.tsx', 'w', encoding='utf-8') as f:
+    f.write(content)
+
+print("File written successfully with correct UTF-8 encoding.")

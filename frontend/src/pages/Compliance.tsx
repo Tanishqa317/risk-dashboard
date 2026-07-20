@@ -41,12 +41,19 @@ function mapStatus(raw: string): Status {
   return 'Minor Deviation'; // fallback for 'unknown'
 }
 
+// New backend shape: one array of self-contained anomaly objects instead of
+// three parallel arrays. This removes the index-zipping that used to
+// backfill "No citation provided" / "No description provided" placeholders.
+type RawAnomaly = {
+  deviation: string;
+  corrective_action: string;
+  regulatory_reference: string;
+};
+
 type ComplianceResponse = {
   unit_id: string;
   compliance_status: string;
-  deviations_found: string[];
-  corrective_actions: string[];
-  regulatory_references: string[];
+  anomalies: RawAnomaly[];
   error?: string;
 };
 
@@ -84,30 +91,30 @@ export default function Compliance() {
         setBackendError(data.error);
       }
 
-      // Zip the three parallel arrays by index. Backend does not guarantee
-      // correspondence between them — this assumes Gemini returned them in
-      // matching order, which is the common case but not structurally enforced.
-      const count = Math.max(
-        data.deviations_found?.length ?? 0,
-        data.corrective_actions?.length ?? 0,
-        data.regulatory_references?.length ?? 0,
-      );
-
-      const mapped: Anomaly[] = Array.from({ length: count }, (_, i) => {
-        const anomalyText = data.deviations_found?.[i] ?? 'No description provided';
-        const actionText = data.corrective_actions?.[i] ?? 'No corrective action provided';
-        const citationText = data.regulatory_references?.[i] ?? 'No citation provided';
-        const severity = deriveSeverity(actionText);
-        return {
-          id: `AN-${String(i + 1).padStart(3, '0')}`,
-          regulation: citationText,
-          anomaly: anomalyText,
-          severity,
-          recommendation: actionText,
-          citation: citationText,
-          status: severity === 'major' ? 'Major Deviation' : 'Minor Deviation',
-        };
-      });
+      // Each item is now a self-contained object — no more zipping parallel
+      // arrays by index, and no more placeholder backfill. Any item missing
+      // a field was already filtered out server-side; this is a client-side
+      // belt-and-braces check in case of an older cached/fallback payload.
+      const mapped: Anomaly[] = (data.anomalies ?? [])
+        .filter(
+          (a) =>
+            a &&
+            a.deviation?.trim() &&
+            a.corrective_action?.trim() &&
+            a.regulatory_reference?.trim(),
+        )
+        .map((a, i) => {
+          const severity = deriveSeverity(a.corrective_action);
+          return {
+            id: `AN-${String(i + 1).padStart(3, '0')}`,
+            regulation: a.regulatory_reference,
+            anomaly: a.deviation,
+            severity,
+            recommendation: a.corrective_action,
+            citation: a.regulatory_reference,
+            status: severity === 'major' ? 'Major Deviation' : 'Minor Deviation',
+          };
+        });
 
       setAnomalies(mapped);
       setSelected(mapped[0] ?? null);

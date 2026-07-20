@@ -120,9 +120,7 @@ def audit_unit_compliance(unit_id: str) -> Dict:
         return {
             "unit_id": unit_id,
             "compliance_status": "unknown",
-            "deviations_found": [],
-            "corrective_actions": [],
-            "regulatory_references": [],
+            "anomalies": [],
             "error": "Gemini API not available",
             "fallback_used": False,
         }
@@ -153,11 +151,20 @@ Recent Alarms (Last Hour): {current_state['recent_alarms']}
 
         client = genai.Client(api_key=GEMINI_API_KEY)
 
+        # NOTE: Schema changed from three parallel arrays (deviations_found /
+        # corrective_actions / regulatory_references) to a single array of
+        # objects. The old shape had no structural guarantee that index i in
+        # each array referred to the same anomaly, and mismatched lengths
+        # caused the frontend to backfill placeholder strings like
+        # "No citation provided" as if they were real audit content.
         system_prompt = (
             "You are a compliance audit agent. Given current operational state and relevant regulatory guidance, "
             "identify compliance deviations and output ONLY valid JSON with this exact shape: "
             "{compliance_status: 'compliant'|'minor_deviation'|'major_deviation', "
-            "deviations_found: [string], corrective_actions: [string], regulatory_references: [string]}. "
+            "anomalies: [{deviation: string, corrective_action: string, regulatory_reference: string}]}. "
+            "Each anomaly object MUST include all three fields fully populated. "
+            "If you cannot find a specific regulatory citation for a deviation, do not include that "
+            "deviation in the anomalies array at all rather than leaving a field blank or vague. "
             "Respond with ONLY the JSON object, no markdown, no preamble."
         )
 
@@ -190,12 +197,22 @@ Please audit this unit's compliance against the provided regulatory standards.
 
         result = json.loads(response_text)
 
+        # Defense-in-depth: even with the new schema, drop any anomaly
+        # object that Gemini returned with a missing/empty field instead of
+        # ever surfacing a placeholder string to the frontend.
+        raw_anomalies = result.get("anomalies", [])
+        clean_anomalies = [
+            a for a in raw_anomalies
+            if isinstance(a, dict)
+            and str(a.get("deviation", "")).strip()
+            and str(a.get("corrective_action", "")).strip()
+            and str(a.get("regulatory_reference", "")).strip()
+        ]
+
         return {
             "unit_id": unit_id,
             "compliance_status": result.get("compliance_status", "unknown"),
-            "deviations_found": result.get("deviations_found", []),
-            "corrective_actions": result.get("corrective_actions", []),
-            "regulatory_references": result.get("regulatory_references", []),
+            "anomalies": clean_anomalies,
             "current_state_summary": state_summary,
             "fallback_used": False,
         }
@@ -210,9 +227,7 @@ Please audit this unit's compliance against the provided regulatory standards.
         return {
             "unit_id": unit_id,
             "compliance_status": "unknown",
-            "deviations_found": [],
-            "corrective_actions": [],
-            "regulatory_references": [],
+            "anomalies": [],
             "error": f"Failed to parse Gemini response: {str(e)}",
             "fallback_used": False,
         }
@@ -226,9 +241,7 @@ Please audit this unit's compliance against the provided regulatory standards.
         return {
             "unit_id": unit_id,
             "compliance_status": "unknown",
-            "deviations_found": [],
-            "corrective_actions": [],
-            "regulatory_references": [],
+            "anomalies": [],
             "error": str(e),
             "fallback_used": False,
         }

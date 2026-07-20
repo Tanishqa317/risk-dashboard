@@ -85,7 +85,12 @@ def _normalize_oracle_result(result: Dict[str, Any]) -> AgentResult:
 
 
 def _call_oracle_agent(plant_state: Dict[str, Any], agent_name: str, system_instruction: str) -> AgentResult:
-    """Call Gemini with a custom system instruction for one Oracle agent."""
+    """Call Gemini with a custom system instruction for one Oracle agent.
+
+    Includes one automatic retry specifically for malformed-JSON responses
+    (a known LLM imperfection, distinct from quota/access failures), since
+    those are often transient and worth one extra attempt before giving up.
+    """
     if not gemini_available or not GEMINI_API_KEY:
         return {
             "risk_score": 0,
@@ -97,46 +102,64 @@ def _call_oracle_agent(plant_state: Dict[str, Any], agent_name: str, system_inst
     assert genai is not None
     assert types is not None
 
-    try:
-        client: Any = genai.Client(api_key=GEMINI_API_KEY)  # type: ignore[attr-defined]
-        user_content = (
-            "Analyze this industrial plant safety state and return valid JSON only with this shape: "
-            '{"risk_score": number, "flagged_zone": string, "reasoning": string}. '
-            f"Plant state: {json.dumps(plant_state)}"
-        )
+    user_content = (
+        "Analyze this industrial plant safety state and return valid JSON only with this shape: "
+        '{"risk_score": number, "flagged_zone": string, "reasoning": string}. '
+        "IMPORTANT: reasoning must be a single plain sentence or two, with no internal quotation "
+        "marks and no line breaks, so the JSON stays valid. "
+        f"Plant state: {json.dumps(plant_state)}"
+    )
 
-        response: Any = client.models.generate_content(
-            model="gemini-flash-latest",
-            contents=[{"role": "user", "parts": [{"text": user_content}]}],
-            config=types.GenerateContentConfig(  # type: ignore[attr-defined]
-                system_instruction=system_instruction,
-                response_mime_type="application/json",
-            ),
-        )
+    last_json_error = ""
+    for attempt in range(2):  # up to one retry, only for malformed-JSON responses
+        try:
+            client: Any = genai.Client(api_key=GEMINI_API_KEY)  # type: ignore[attr-defined]
 
-        response_text = str(getattr(response, "text", "")).strip()
-        if response_text.startswith("```"):
-            response_text = response_text.split("```")[1]
-            if response_text.startswith("json"):
-                response_text = response_text[4:]
-        response_text = response_text.strip()
+            response: Any = client.models.generate_content(
+                model="gemini-flash-latest",
+                contents=[{"role": "user", "parts": [{"text": user_content}]}],
+                config=types.GenerateContentConfig(  # type: ignore[attr-defined]
+                    system_instruction=system_instruction,
+                    response_mime_type="application/json",
+                ),
+            )
 
-        parsed: Dict[str, Any] = json.loads(response_text)
-        return _normalize_oracle_result(parsed)
-    except Exception as exc:  # pragma: no cover
-        err_str = str(exc)
-        if "RESOURCE_EXHAUSTED" in err_str or "429" in err_str:
-            reasoning = f"{agent_name} agent unavailable — Gemini API quota exceeded (free-tier limit reached)."
-        elif "NOT_FOUND" in err_str or "404" in err_str:
-            reasoning = f"{agent_name} agent unavailable — configured Gemini model is no longer accessible."
-        else:
-            reasoning = f"{agent_name} agent failed: {err_str[:120]}"  # trimmed, avoids raw dumps
-        return {
-            "risk_score": 0,
-            "flagged_zone": "unknown",
-            "reasoning": reasoning,
-            "failed": True,
-        }
+            response_text = str(getattr(response, "text", "")).strip()
+            if response_text.startswith("```"):
+                response_text = response_text.split("```")[1]
+                if response_text.startswith("json"):
+                    response_text = response_text[4:]
+            response_text = response_text.strip()
+
+            parsed: Dict[str, Any] = json.loads(response_text)
+            return _normalize_oracle_result(parsed)
+
+        except json.JSONDecodeError as exc:
+            last_json_error = str(exc)
+            continue  # retry once for malformed JSON specifically
+
+        except Exception as exc:  # pragma: no cover
+            err_str = str(exc)
+            if "RESOURCE_EXHAUSTED" in err_str or "429" in err_str:
+                reasoning = f"{agent_name} agent unavailable — Gemini API quota exceeded (free-tier limit reached)."
+            elif "NOT_FOUND" in err_str or "404" in err_str:
+                reasoning = f"{agent_name} agent unavailable — configured Gemini model is no longer accessible."
+            else:
+                reasoning = f"{agent_name} agent failed: {err_str[:120]}"  # trimmed, avoids raw dumps
+            return {
+                "risk_score": 0,
+                "flagged_zone": "unknown",
+                "reasoning": reasoning,
+                "failed": True,
+            }
+
+    # Both attempts produced malformed JSON — give up honestly
+    return {
+        "risk_score": 0,
+        "flagged_zone": "unknown",
+        "reasoning": f"{agent_name} agent failed after retry — malformed JSON response: {last_json_error[:120]}",
+        "failed": True,
+    }
 
 
 def runOracleSwarm(plantState: Dict[str, Any]) -> List[Dict[str, Any]]:
