@@ -19,10 +19,12 @@ SafeMate is an AI-powered industrial plant safety command center. It treats a pl
 | **Compliance Audit Agent** | RAG-based regulatory anomaly detection with corrective actions and citations |
 
 ## Architecture
+```bash
 frontend/ React + TypeScript + Vite + Tailwind + Framer Motion
 backend/ FastAPI + Google Gemini (gemini-flash-latest)
 data/ Synthetic + real (AI4I 2020) sensor dataset, plant layout, permits
 The backend calls the Gemini API for risk reasoning and includes a caching + fallback layer: if Gemini is rate-limited or unavailable, previously-captured real responses are served automatically so the app degrades gracefully rather than failing.
+```
 
 ## Setup
 
@@ -56,10 +58,9 @@ Frontend runs at `http://localhost:5173`.
 
 ## Team
 
-Built during ET National Hackathon by Model Minds .
-Team Members - 
-Tanishqa Shetkar 
-Divya Chaudhari
+Built during **ET National Hackathon** by **Model Minds**.
+
+Team members: Tanishqa Shetkar, Divya Chaudhari
 
 ## License
 
