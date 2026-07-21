@@ -11,3 +11,5 @@ frontend/dist
 
 # Python virtual environment
 backend/.venv
+
+backend/data/evidence_chain.json
