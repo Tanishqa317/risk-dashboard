@@ -4,6 +4,8 @@
 
 SafeMate is an AI-powered industrial plant safety command center. It treats a plant like a patient under continuous monitoring — real-time risk scoring, multi-agent AI consensus, predictive failure fingerprinting, and tamper-evident audit trails, all built on a live FastAPI backend and a React/TypeScript frontend.
 
+![SafeMate Dashboard](docs/screenshot-dashboard.png)
+
 ## Features
 
 | Feature | Description |
